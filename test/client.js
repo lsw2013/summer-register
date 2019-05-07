@@ -5,15 +5,27 @@
 
 const WebSocket = require('ws');
 
-const ws = new WebSocket('ws://192.168.141.211:8899');
+const ws = new WebSocket('ws://localhost:8899');
 
 ws.on('open', function open() {
-    ws.send('something');
+    let msg = { type: 'server', name: 'next' };
+    msg = JSON.stringify(msg);
+    ws.send(msg);
 });
 
 ws.on('message', function incoming(data) {
-    console.log(data);
+    console.log('data: ', data);
     if (data === 'pong') {
-        ws.send('pang');
+        let msg = { type: 'heartbeat', data: 'pong' };
+        msg = JSON.stringify(msg);
+        ws.send(msg);
     }
+});
+
+ws.on('close', (code, reason) => {
+    console.log('close: ', code, reason);
+});
+
+ws.on('error', err => {
+    console.error('err: ', err);
 });

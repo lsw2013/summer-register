@@ -5,6 +5,18 @@
 
 const WebSocket = require('ws');
 
+const { handle } = require('./handle');
+
+const log = console.log;
+console.log = function (...args) {
+    let date = new Date();
+    let dateStr = date.toLocaleString();
+    let milliseconds = date.getMilliseconds();
+    let time = dateStr + '.' + milliseconds;
+    args.unshift(time);
+    log(...args);
+}
+
 /**
  * register server
  */
@@ -24,6 +36,34 @@ exports = module.exports = class Server {
         this.clients = {};
         // client name list.
         this.clientList = [];
+        // server client container.
+        this.serverClient = {};
+        // server client List. eg: { 'server1': [ip1, ip2, ip3], 'server2': [ip4, ip5, ip6] }
+        this.serverClientList = {};
+        this.serverClientType = {};
+    }
+
+    /**
+     * add server client to local attribute.
+     * @param {string} name - server name
+     * @param {string} host - server host
+     */
+    addServerClient(name, host) {
+        if (!name) {
+            console.warn(`server name: ${name} invalid!`);
+            return;
+        }
+        if (!this.serverClientList[name]) {
+            this.serverClientList[name] = [host];
+        }
+        else {
+            if (!this.serverClientList[name].includes(host)) {
+                this.serverClientList[name].push(host);
+            }
+        }
+        this.serverClientType[host] = name;
+        console.log(`add ${name} host: ${host}`);
+        console.log(this.serverClientList);
     }
 
     /**
@@ -34,19 +74,32 @@ exports = module.exports = class Server {
     addClient(host, ws) {
         this.clients[host] = ws;
         this.clientList = Object.keys(this.clients);
-        this.broadcast();
         return this;
     }
 
     delClient(host) {
         delete this.clients[host];
+        this.delServerClient(host);
         this.clientList = Object.keys(this.clients);
+        this.broadcast();
+        return this;
+    }
+
+    /**
+     * 删掉 serverClientList 和 serverClient 中的对应数据
+     * @param {string} host 
+     */
+    delServerClient(host) {
+        delete this.serverClient[host];
+        let name = this.serverClientType[host];
+        let idx = this.serverClientList[name].indexOf(host);
+        this.serverClientList[name].splice(idx, 1);
         return this;
     }
 
     broadcast(str) {
 
-        str = str ? str : JSON.stringify(this.clientList);
+        str = str ? str : JSON.stringify(this.serverClientList);
         let entries = Object.entries(this.clients);
         if (!entries.length) {
             console.log(`not have client connected!`);
@@ -77,7 +130,7 @@ exports = module.exports = class Server {
         console.log(`server started! listening ${this.port} ...`);
 
         const wss = this.wss;
-        const that = this;
+        const _this = this;
 
         wss.on('connection', function connection(ws, req) {
 
@@ -90,7 +143,8 @@ exports = module.exports = class Server {
 
             ws.on('message', function incoming(message) {
                 console.log('received: %s from: %s', message, host);
-                that.addClient(host, ws);
+                _this.addClient(host, ws);
+                handle(_this, host, ws, message);
                 // TODO: handle msg for frontPage. I can handle this in addClient func. so does delClient.
             });
 
@@ -100,7 +154,7 @@ exports = module.exports = class Server {
                     remotePort
                 } = ws._socket;
                 let host = remoteAddress + ':' + remotePort;
-                that.delClient(host);
+                _this.delClient(host);
                 console.log(`client 【${host}】 closed, code: ${code}, reason: ${reason}`);
             });
         });

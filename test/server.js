@@ -39,7 +39,7 @@ wss.on('connection', function connection(ws, req) {
         addClient(host, ws);
     });
 
-    ws.send('something');
+    // ws.send('something');
 
     ws.on('close', (code, reason) => {
         let {
