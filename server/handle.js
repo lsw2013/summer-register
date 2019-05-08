@@ -26,6 +26,7 @@ function handle(register, host, ws, msg) {
     console.log(`client msg: ${JSON.stringify(msg)}`);
 
     let { type, name, data } = msg;
+    register.setClientType(type, host, name);
     switch (type) {
         // handler server client
         case 'server':
