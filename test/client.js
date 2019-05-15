@@ -10,7 +10,12 @@ const ws = new WebSocket('ws://localhost:8899');
 ws.on('open', function open() {
     let msg = { type: 'server', name: 'next' };
     msg = JSON.stringify(msg);
-    ws.send(msg);
+    // ws.send(msg);
+    for (let i in [1, 2, 3, 4, 5, 6]) {
+        send(i).then(data => {
+            console.log('promise: ', i, data);
+        });
+    }
 });
 
 ws.on('message', function incoming(data) {
@@ -29,3 +34,15 @@ ws.on('close', (code, reason) => {
 ws.on('error', err => {
     console.error('err: ', err);
 });
+
+function send(msg) {
+    ws.send(msg);
+    return new Promise((resolve) => {
+        ws.on('message', data => {
+            if (data == msg) {
+                resolve(data);
+            }
+        });
+    })
+}
+

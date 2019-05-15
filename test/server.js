@@ -36,7 +36,12 @@ wss.on('connection', function connection(ws, req) {
             remotePort
         } = req.connection;
         let host = remoteAddress + ':' + remotePort;
-        addClient(host, ws);
+        // addClient(host, ws);
+        // ws.send('test');
+        let time = parseInt(8 - parseInt(message)) * 1000;
+        setTimeout(() => {
+            ws.send(message);
+        }, time);
     });
 
     // ws.send('something');
